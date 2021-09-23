@@ -17,7 +17,7 @@ using Oxide.Core.Plugins;
 
 namespace Oxide.Plugins
 {
-    [Info("Death Notices", "DarkAz", "1.0.0")]
+    [Info("Death Notices", "DarkAz", "1.0.1")]
     [Description("Announce kills within game chat.")]
     class DeathNotices : RustPlugin
     {
@@ -860,6 +860,9 @@ namespace Oxide.Plugins
                 WeaponType = GetWeaponType(hitInfo?.WeaponPrefab),
                 Distance = GetDistance(victimEntity.lastAttacker ?? hitInfo?.Initiator, victimEntity),
             };
+
+            if(string.IsNullOrEmpty(data.VictimEntityType))
+                return;
 
 #if DEBUG
             Puts("------- Death Notices Debug Start -------");
