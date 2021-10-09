@@ -1,4 +1,4 @@
-// #define DEBUG
+#define DEBUG
 
 using Newtonsoft.Json;
 using Oxide.Core;
@@ -17,7 +17,7 @@ using Oxide.Core.Plugins;
 
 namespace Oxide.Plugins
 {
-    [Info("Death Notices", "DarkAz", "1.0.1")]
+    [Info("Death Notices", "DarkAz", "1.1.1")]
     [Description("Announce kills within game chat.")]
     class DeathNotices : RustPlugin
     {
@@ -45,6 +45,7 @@ namespace Oxide.Plugins
                 ["killer"] = "#C4FF00",
                 ["victim"] = "#C4FF00",
                 ["victimself"] = "#FF0000",
+                ["victimowner"] = "#FFC400",
                 ["weapon"] = "#C4FF00",
                 ["attachments"] = "#C4FF00",
                 ["distance"] = "#C4FF00",
@@ -89,6 +90,12 @@ namespace Oxide.Plugins
                 ["highexternalwallice"] = "a High External Ice Wall",
                 ["campfire"] = "a Campfire",
                 ["skullfirepit"] = "a Skill Firepit",
+                ["furnacelarge"] = "a Large Furnace",
+                ["furnace"] = "a Furnace",
+                ["woodenboxsmall"] = "a Small Wooden Box",
+                ["woodenboxlarge"] = "a Large Wooden Box",
+                ["toolcupboard"] = "a Tool Cupboard",
+                ["foundation"] = "a Foundation",
             };
 
             [JsonProperty(PropertyName = "WeaponEntities")]
@@ -345,6 +352,13 @@ namespace Oxide.Plugins
             { "skull_fire_pit", "skullfirepit" },
             //exceptions (require further handling)
             { "flamethrower_fireball", "other" },
+            // building entities
+            { "furnace.large", "furnacelarge" },
+            { "furnace", "furnace" },
+            { "box.wooden.large", "woodenboxlarge" },
+            { "woodbox_deployed", "woodenboxsmall" },
+            { "cupboard.tool.deployed", "toolcupboard" },
+            { "foundation", "foundation" },
         };
 
         #endregion
@@ -385,6 +399,8 @@ namespace Oxide.Plugins
             public String VictimEntityType { get; set; }
             [JsonIgnore] public BaseCombatEntity VictimEntity { get; set; }
             public String VictimName { get; set; }
+
+            public string VictimEntityOwner { get; set; }
 
             public DamageType DamageType { get; set; }
             [JsonIgnore] public HitInfo HitInfo { get; set; }
@@ -431,14 +447,17 @@ namespace Oxide.Plugins
                 if (knownEntityName)
                     return ConfigEntityName;
 
+                    Puts("******* Death Notices : Unknown Entity NAME *******");
+                    Puts($"Entity Name: {EntityName}");
+
             }
 
 #if DEBUG
-        Puts("******* Death Notices : Unknown Entity Start *******");
+        Puts("******* Death Notices : Unknown Combat Entity Start *******");
         Puts($"Entity: {entity}");
         Puts($"Entity PrefabName: {entity?.PrefabName}");
         Puts($"Entity ShortPrefabName: {entity?.ShortPrefabName}");
-        Puts("******* Death Notices : Unknown Entity End *******");
+        Puts("******* Death Notices : Unknown Combat Entity End *******");
 #endif
 
             // if (CombatEntityType.ContainsKey(entity.ShortPrefabName))
@@ -632,11 +651,15 @@ namespace Oxide.Plugins
             if (data.VictimName == data.KillerName || string.IsNullOrEmpty(data.KillerName))
             {
                 message += $"<color={_config.Colors["victimself"]}>themself!</color>";
-
             }
             else
             {
                 message += $"<color={_config.Colors["victim"]}>{data.VictimName}</color>";
+            }
+
+            if (!string.IsNullOrEmpty(data.VictimEntityOwner))
+            {
+                message += $" owned by <color={_config.Colors["victimowner"]}>{data.VictimEntityOwner}</color>";
             }
 
             if (data.WeaponType != "other" && data.WeaponType != "none" && data.KillerEntity.ShortPrefabName != "autoturret_deployed" && data.KillerEntity.ShortPrefabName != "sam_site_turret_deployed")
@@ -808,6 +831,10 @@ namespace Oxide.Plugins
             if (victimEntity == null)
                 return;
 
+            // Ignore "Generic" damage
+            if (victimEntity.lastDamage == DamageType.Generic)
+                return;
+
             // if there's no hitInfo we should still handle environmental deaths
             if (hitInfo == null)
             {
@@ -855,6 +882,7 @@ namespace Oxide.Plugins
                 KillerEntity = victimEntity?.lastAttacker ?? hitInfo?.Initiator,
                 VictimEntityType = GetCombatEntityType(victimEntity),
                 KillerEntityType = GetCombatEntityType(victimEntity?.lastAttacker),
+                VictimEntityOwner =  covalence.Players.FindPlayerById(victimEntity.OwnerID.ToString())?.Name ?? "",
                 DamageType = victimEntity.lastDamage,
                 HitInfo = hitInfo,
                 WeaponType = GetWeaponType(hitInfo?.WeaponPrefab),
@@ -863,28 +891,6 @@ namespace Oxide.Plugins
 
             if(string.IsNullOrEmpty(data.VictimEntityType))
                 return;
-
-#if DEBUG
-            Puts("------- Death Notices Debug Start -------");
-            Puts($"VictimEntity: {data.VictimEntity}");
-            Puts($"VictimEntity PrefabName: {data.VictimEntity?.PrefabName}");
-            Puts($"VictimEntity ShortPrefabName: {data.VictimEntity?.ShortPrefabName}");
-            Puts($"VictimEntityType: {data.VictimEntityType}");
-            Puts($"VictimName: {data.VictimName}");
-            Puts($"KillerEntity: {data.KillerEntity}");
-            Puts($"KillerEntity PrefabName: {data.KillerEntity?.PrefabName}");
-            Puts($"KillerEntity ShortPrefabName: {data.KillerEntity?.ShortPrefabName}");
-            Puts($"KillerEntityType: {data.KillerEntityType}");
-            Puts($"KillerName: {data.KillerName}");
-            Puts($"DamageType: {data.DamageType}");
-            Puts($"HitInfo: {data.HitInfo}");
-            Puts($"HitInfo.boneArea: {data.HitInfo?.boneArea}");
-            Puts($"HitInfo.WeaponPrefab: {data.HitInfo?.WeaponPrefab}");
-            Puts($"HitInfo.WeaponPrefab.ShortPrefabName: {data.HitInfo?.WeaponPrefab?.ShortPrefabName}");
-            Puts($"WeaponType: {data.WeaponType}");
-            Puts($"Distance: {data.Distance}");
-            Puts("------- Death Notices Debug End -------");
-#endif
 
             // Ignore decay
             if (data.DamageType == DamageType.Decay)
@@ -930,13 +936,36 @@ namespace Oxide.Plugins
             // we only want to consider things that involve a player somewhere
             if (hasPlayer == false)
             {
-#if DEBUG
-                Puts("------- Death Notices Skipped as No Player Was Involved -------");
-                Puts($"Killer: {data.KillerName} Victim: {data.VictimName}");
-                Puts("---------------------------------------------------------------------------------");
-#endif
+// #if DEBUG
+//                 Puts("------- Death Notices Skipped as No Player Was Involved -------");
+//                 Puts($"Killer: {data.KillerName} Victim: {data.VictimName}");
+//                 Puts("---------------------------------------------------------------------------------");
+// #endif
                 return;
             }
+
+#if DEBUG
+            Puts("------- Death Notices Debug Start -------");
+            Puts($"VictimEntity: {data.VictimEntity}");
+            Puts($"VictimEntity PrefabName: {data.VictimEntity?.PrefabName}");
+            Puts($"VictimEntity ShortPrefabName: {data.VictimEntity?.ShortPrefabName}");
+            Puts($"VictimEntityType: {data.VictimEntityType}");
+            Puts($"VictimEntityOwner: {data.VictimEntityOwner}");
+            Puts($"VictimName: {data.VictimName}");
+            Puts($"KillerEntity: {data.KillerEntity}");
+            Puts($"KillerEntity PrefabName: {data.KillerEntity?.PrefabName}");
+            Puts($"KillerEntity ShortPrefabName: {data.KillerEntity?.ShortPrefabName}");
+            Puts($"KillerEntityType: {data.KillerEntityType}");
+            Puts($"KillerName: {data.KillerName}");
+            Puts($"DamageType: {data.DamageType}");
+            Puts($"HitInfo: {data.HitInfo}");
+            Puts($"HitInfo.boneArea: {data.HitInfo?.boneArea}");
+            Puts($"HitInfo.WeaponPrefab: {data.HitInfo?.WeaponPrefab}");
+            Puts($"HitInfo.WeaponPrefab.ShortPrefabName: {data.HitInfo?.WeaponPrefab?.ShortPrefabName}");
+            Puts($"WeaponType: {data.WeaponType}");
+            Puts($"Distance: {data.Distance}");
+            Puts("------- Death Notices Debug End -------");
+#endif
 
             string message = "";
 
