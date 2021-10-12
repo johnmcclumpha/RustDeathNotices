@@ -17,7 +17,7 @@ using Oxide.Core.Plugins;
 
 namespace Oxide.Plugins
 {
-    [Info("Death Notices", "DarkAz", "1.1.1")]
+    [Info("Death Notices", "DarkAz", "1.1.2")]
     [Description("Announce kills within game chat.")]
     class DeathNotices : RustPlugin
     {
@@ -631,6 +631,10 @@ namespace Oxide.Plugins
                         verbage = _config.Verbs["vehicle"];
                         data.IconType = _config.DiscordIcons["vehicle"];
                         break;
+                    } else {
+                        // this is a weird damage that we don't want to be broadcasting
+                        data.Message = null;
+                        return data;
                     }
                     break;
                 
