@@ -837,9 +837,21 @@ namespace Oxide.Plugins
             if (victimEntity == null)
                 return;
 
+            var killerEntity = victimEntity?.lastAttacker ?? hitInfo?.Initiator;
+            
             // Ignore "Generic" damage
-            if (victimEntity.lastDamage == DamageType.Generic)
-                return;
+            if (victimEntity.lastDamage == DamageType.Generic) {
+                if (killerEntity.ToPlayer().isMounted) {
+                } else {
+                    string VictimEntityType = GetCombatEntityType(victimEntity);
+ #if DEBUG
+                    Puts("------- Death Notices Skipped as damage was Generic -------");
+                    Puts($"Killer: {killerEntity.ShortPrefabName} Victim: {victimEntity.ShortPrefabName}");
+                    Puts("---------------------------------------------------------------------------------");
+ #endif
+                    return;
+                }
+            }                                                        
 
             // if there's no hitInfo we should still handle environmental deaths
             if (hitInfo == null)
@@ -885,7 +897,7 @@ namespace Oxide.Plugins
             var data = new DeathData
             {
                 VictimEntity = victimEntity,
-                KillerEntity = victimEntity?.lastAttacker ?? hitInfo?.Initiator,
+                KillerEntity = killerEntity,
                 VictimEntityType = GetCombatEntityType(victimEntity),
                 KillerEntityType = GetCombatEntityType(victimEntity?.lastAttacker),
                 VictimEntityOwner =  covalence.Players.FindPlayerById(victimEntity.OwnerID.ToString())?.Name ?? "",
