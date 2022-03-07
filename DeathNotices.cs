@@ -102,6 +102,7 @@ namespace Oxide.Plugins
             public Dictionary<string, string> WeaponEntities = new Dictionary<string, string>()
             {
                 ["ak47u.entity"] = "Assault Rifle",
+                ["ak47u_ice.entity"] = "Assault Rifle",
                 ["axe_salvaged.entity"] = "Salvaged Axe",
                 ["bolt_rifle.entity"] = "Bolt Action Rifle",
                 ["bone_club.entity"] = "Bone Club",
@@ -321,6 +322,7 @@ namespace Oxide.Plugins
             { "chicken", "chicken" },
             { "horse", "horse" },
             { "testridablehorse", "horse" },
+            { "polarbear", "polarbear"},                               
             { "simpleshark", "shark" },
             { "stag", "stag" },
             { "wolf", "wolf" },
