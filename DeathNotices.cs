@@ -839,6 +839,10 @@ namespace Oxide.Plugins
 
             var killerEntity = victimEntity?.lastAttacker ?? hitInfo?.Initiator;
             
+            // Ignore if killer is null - rare, but happens
+            if (killerEntity == null)
+                return;
+            
             // Ignore "Generic" damage
             if (victimEntity.lastDamage == DamageType.Generic) {
                 if (killerEntity.ToPlayer().isMounted) {
