@@ -102,6 +102,7 @@ namespace Oxide.Plugins
             public Dictionary<string, string> WeaponEntities = new Dictionary<string, string>()
             {
                 ["ak47u.entity"] = "Assault Rifle",
+                ["ak47u_ice.entity"] = "Assault Rifle",
                 ["axe_salvaged.entity"] = "Salvaged Axe",
                 ["bolt_rifle.entity"] = "Bolt Action Rifle",
                 ["bone_club.entity"] = "Bone Club",
@@ -321,6 +322,7 @@ namespace Oxide.Plugins
             { "chicken", "chicken" },
             { "horse", "horse" },
             { "testridablehorse", "horse" },
+            { "polarbear", "polarbear"},                               
             { "simpleshark", "shark" },
             { "stag", "stag" },
             { "wolf", "wolf" },
@@ -835,9 +837,25 @@ namespace Oxide.Plugins
             if (victimEntity == null)
                 return;
 
-            // Ignore "Generic" damage
-            if (victimEntity.lastDamage == DamageType.Generic)
+            var killerEntity = victimEntity?.lastAttacker ?? hitInfo?.Initiator;
+            
+            // Ignore if killer is null - rare, but happens
+            if (killerEntity == null)
                 return;
+            
+            // Ignore "Generic" damage
+            if (victimEntity.lastDamage == DamageType.Generic) {
+                if (killerEntity.ToPlayer().isMounted) {
+                } else {
+                    string VictimEntityType = GetCombatEntityType(victimEntity);
+ #if DEBUG
+                    Puts("------- Death Notices Skipped as damage was Generic -------");
+                    Puts($"Killer: {killerEntity.ShortPrefabName} Victim: {victimEntity.ShortPrefabName}");
+                    Puts("---------------------------------------------------------------------------------");
+ #endif
+                    return;
+                }
+            }                                                        
 
             // if there's no hitInfo we should still handle environmental deaths
             if (hitInfo == null)
@@ -883,7 +901,7 @@ namespace Oxide.Plugins
             var data = new DeathData
             {
                 VictimEntity = victimEntity,
-                KillerEntity = victimEntity?.lastAttacker ?? hitInfo?.Initiator,
+                KillerEntity = killerEntity,
                 VictimEntityType = GetCombatEntityType(victimEntity),
                 KillerEntityType = GetCombatEntityType(victimEntity?.lastAttacker),
                 VictimEntityOwner =  covalence.Players.FindPlayerById(victimEntity.OwnerID.ToString())?.Name ?? "",
